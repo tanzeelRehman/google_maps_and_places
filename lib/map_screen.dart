@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:google_maps_and_places/model/places_model.dart';
-import 'package:google_maps_and_places/place_provider.dart';
-import 'package:google_maps_and_places/place_service.dart';
+
+import 'package:google_maps_and_places/provider/place_provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
@@ -24,55 +24,48 @@ class MapScreenContent extends StatefulWidget {
 }
 
 class _MapScreenContentState extends State<MapScreenContent> {
-  late GoogleMapController mapController;
-  late PlaceApiProvider apiClient;
-
-  final LatLng _center = const LatLng(45.521563, -122.677433);
-
   TextEditingController addressController = TextEditingController();
 
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-  }
-
-  final GlobalKey _key = GlobalKey();
-
-  ScrollController scrollController = ScrollController();
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    apiClient = PlaceApiProvider();
+
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      context.read<PlaceProvider>().initilizeCompleter();
+      context.read<PlaceProvider>().getLocationOnce();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        controller: scrollController,
-        child: SafeArea(
+        body: SafeArea(
             child: Stack(
-          children: [
-            SizedBox(
-              height: MediaQuery.of(context).size.height,
-              child: GoogleMap(
-                onMapCreated: _onMapCreated,
-                initialCameraPosition: CameraPosition(
-                  target: _center,
-                  zoom: 11.0,
-                ),
-              ),
+      children: [
+        Consumer<PlaceProvider>(builder: ((context, value, child) {
+          return SizedBox(
+            height: MediaQuery.of(context).size.height,
+            child: GoogleMap(
+              mapType: MapType.hybrid,
+              polylines: context.read<PlaceProvider>().polyline,
+              markers: context.read<PlaceProvider>().mapMarkers,
+              initialCameraPosition: CameraPosition(
+                  target: context.read<PlaceProvider>().initialcameraPosition,
+                  zoom: 12),
+              onMapCreated: (GoogleMapController controller) {
+                context.read<PlaceProvider>().onMapCreated(controller);
+              },
             ),
-            Positioned(
-              top: 20,
-              left: 50,
-              right: 50,
-              child: searchWidget(context),
-            ),
-          ],
-        )),
-      ),
-    );
+          );
+        })),
+        Positioned(
+          top: 20,
+          left: 50,
+          right: 50,
+          child: searchWidget(context),
+        ),
+      ],
+    )));
   }
 
   Widget searchWidget(BuildContext context) {
@@ -124,10 +117,13 @@ class _MapScreenContentState extends State<MapScreenContent> {
               title: Text("No Data"),
             );
           },
-          onSuggestionSelected: (suggestion) {
-            // Navigator.of(context).push(MaterialPageRoute(
-            //   builder: (context) => ProductPage(product: suggestion)
-            // ));
+          onSuggestionSelected: (suggestion) async {
+            //* Getting place details from place id
+            await context
+                .read<PlaceProvider>()
+                .getPlaceDetails(suggestion.placeId);
+
+            // goToPlace(LatLng(placePosoition.lat, placePosoition.lng));
           },
         ));
   }

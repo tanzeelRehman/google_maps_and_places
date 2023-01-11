@@ -33,9 +33,11 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_keyboard_visibility: ^5.4.0
-  google_maps_flutter: ^2.2.3
   flutter_typeahead: ^4.1.1
+  google_map_polyline_new: ^0.3.0+2
+  google_maps_flutter: ^2.2.3
   http: ^0.13.5
+  location: ^4.4.0
   provider: ^6.0.5
 
 dev_dependencies:
